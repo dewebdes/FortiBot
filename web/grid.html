@@ -1,0 +1,397 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>crypto trading prediction bot</title>
+</head>
+<body>
+    <link type="text/css" rel="stylesheet" href="./jsgrid.min.css" />
+    <link type="text/css" rel="stylesheet" href="./jsgrid-theme.min.css" />
+    <script type="text/javascript" src="./jquery-3.4.1.min.js"></script>
+    <script type="text/javascript" src="./jsgrid.min.js"></script>
+    <script src="./socket.io.min.js"></script>
+    <script>
+        var mysock;
+    </script>
+    <div id="armdv" style="display:none;">
+        Fee: <input type="text" value="" id="sencval" placeholder="0.00" /> &nbsp; <button onclick="glaram(); return false;">Grater</button> &nbsp; <button onclick="llaram(); return false;">Less</button> 
+        &nbsp; <button onclick="closealrm(); return false;">X</button>
+    </div>
+    <div>
+        <input type="checkbox" id="stopref" /> stop refresh
+        &nbsp; / &nbsp; <input type="checkbox" id="redsort" /> red sort
+        &nbsp; / &nbsp; <input type="checkbox" id="starsort" checked="checked" /> star sort
+        &nbsp; / &nbsp; <span id="bestoff"></span>
+        <br /><br />
+        filters: <input type="text" value="" id="filtersb" /> <input type="button" value="set filters" onclick="setfilters()" /> <input value="remove filters" type="button" onclick="removefilters()" />
+    </div>
+    <div id="jsGrid"></div>
+
+    <script>
+
+        var bestoffer = { obj: null, difper: 0 };
+        var prevfeedreds = new Array();
+
+        var filtarr = new Array();
+        function setfilters() {
+            filtarr = jQuery('#filtersb').val().split(',');
+        }
+        function removefilters() {
+            filtarr = new Array();
+        }
+        function glaram() {
+            var nalm = new alarmobj(lastuilarm, jQuery('#sencval').val(), 'g');
+            alarms[alarms.length] = nalm;
+            jQuery('#sencval').val('');
+            jQuery('#armdv').hide();
+        }
+        function llaram() {
+            var nalm = new alarmobj(lastuilarm, jQuery('#sencval').val(), 'l');
+            alarms[alarms.length] = nalm;
+            jQuery('#sencval').val('');
+            jQuery('#armdv').hide();
+        }
+        function closealrm() {
+            jQuery('#sencval').val('');
+            jQuery('#armdv').hide();
+        }
+        var lastuilarm;
+        var alarms = new Array();
+            function alarmobj(uid, fee, comp) {
+                this.uid = uid;
+                this.fee = fee;
+                this.comp = comp;
+            }
+        function setsensor(uid) {
+            lastuilarm = uid;
+            jQuery('#sencval').val('');
+            jQuery('#armdv').show();
+        }
+        function playalarm() {
+            var audio = new Audio('https://coin.parstaz.com/alarm.mp3');
+            audio.play()
+        }
+        function fldobj(indx, star, name, perc, sensor, fee) {
+            this.indx = indx;
+            this.star = star;
+            this.name = name;
+            this.perc = perc;
+            this.sensor = sensor;
+            this.fee = fee;
+        }
+        var dtar;
+        var prevsortedfeed = new Array();
+        function setgrid() {
+            if (jQuery('#stopref').prop('checked') == true) {
+                return;
+            }
+           
+            dtar = new Array();
+
+            for (var i = 0; i <= feedar.length - 1; i++) {
+                for (var j = 0; j <= feedar.length - 1; j++) {
+                    if (parseFloat(feedar[j].perc) > parseFloat(feedar[i].perc)) {
+                        var temp = feedar[i];
+                        feedar[i] = feedar[j];
+                        feedar[j] = temp;
+                    }
+                }
+            }
+
+            if (prevsortedfeed.length > 0) {
+                for (var i = 0; i <= feedar.length - 1; i++) {
+                    feedar[i].indx = i;
+                    for (var j = 0; j <= prevsortedfeed.length - 1; j++) {
+                        if ((feedar[i].name == prevsortedfeed[j].name)) {
+                            if (i > j) {
+                                if ((parseFloat(feedar[i].price)) > (parseFloat(prevsortedfeed[j].price))) {
+                                    feedar[i].grnstar += Math.abs(i - j);
+                                    feedar[i].redstar -= Math.abs(i - j);
+                                }
+                            }
+                            if (i < j) {
+                                if ((parseFloat(feedar[i].price)) < (parseFloat(prevsortedfeed[j].price))) {
+                                    feedar[i].redstar += Math.abs(i - j);
+                                    feedar[i].grnstar -= Math.abs(i - j);
+                                }
+                            }
+                            if (i == j) {
+                                feedar[i].redstar = prevsortedfeed[j].redstar;
+                                feedar[i].grnstar = prevsortedfeed[j].grnstar;
+                            }
+
+                            if ((parseFloat(feedar[i].price)) > (parseFloat(prevsortedfeed[j].price))) {
+                                feedar[i].up = prevsortedfeed[j].up + 1;
+                                feedar[i].down = prevsortedfeed[j].down - 1;
+                            }
+                            if ((parseFloat(feedar[i].price)) < (parseFloat(prevsortedfeed[j].price))) {
+                                feedar[i].up = prevsortedfeed[j].up - 1;
+                                feedar[i].down = prevsortedfeed[j].down + 1;
+                            }
+                            if ((parseFloat(feedar[i].price)) == (parseFloat(prevsortedfeed[j].price))) {
+                                feedar[i].up = prevsortedfeed[j].up;
+                                feedar[i].down = prevsortedfeed[j].down;
+                            }
+
+
+                            if (feedar[i].redstar < 0) {
+                                feedar[i].redstar = 0;
+                            }
+                            if (feedar[i].grnstar < 0) {
+                                feedar[i].grnstar = 0;
+                            }
+                            if (feedar[i].up < 0) {
+                                feedar[i].up = 0;
+                            }
+                            if (feedar[i].down < 0) {
+                                feedar[i].down = 0;
+                            }
+                            break;
+                        }
+                    }
+                }
+                prevsortedfeed = feedar;
+            } else {
+                prevsortedfeed = feedar;
+            }
+
+            if (jQuery('#redsort').prop('checked') == true) {
+                for (var i = 0; i <= feedar.length - 1; i++) {
+                    for (var j = 0; j <= feedar.length - 1; j++) {
+                        if (parseInt(feedar[j].down) < parseInt(feedar[i].down)) {
+                            var temp = feedar[i];
+                            feedar[i] = feedar[j];
+                            feedar[j] = temp;
+                        }
+                    }
+                }
+            }
+
+            bestoffer = { obj: null, difper: 0 };
+            for (var i = 0; i <= feedar.length - 1; i++) {
+                for (var j = 0; j <= basefeed.length - 1; j++) {
+                    if ((feedar[i].name == basefeed[j].name)) {
+                        if ((parseFloat(feedar[i].price)) > (parseFloat(basefeed[j].price))) {
+                            basefeed[j].price = feedar[i].price;
+                        }
+                        if ((parseFloat(feedar[i].price)) < (parseFloat(basefeed[j].price))) {
+                            var diffperc = parseFloat(100 - ((parseFloat(feedar[i].price) * 100) / parseFloat(basefeed[j].price))).toFixed(2);
+                            feedar[i].redscore = Math.abs(diffperc);
+                            
+                           
+                            if (prevfeedreds.length > 0) {
+                                for (var z = 0; z <= prevfeedreds.length - 1; z++) {
+                                    if ((prevfeedreds[z].name == feedar[i].name)) {
+                                        var reddif = feedar[i].redscore - prevfeedreds[z].redscore;
+                                        if (reddif > bestoffer.difper) {
+                                            bestoffer = { obj: feedar[i], difper: reddif };
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                        }
+                    }
+                }
+            }
+            prevfeedreds = feedar;
+
+            try {
+                jQuery('#bestoff').html("<a href='https://www.coinex.com/exchange/" + bestoffer.obj.name + "-USDT' target='_blank'>" + bestoffer.obj.name + " > -" + bestoffer.difper + "%" + "</a>");
+                if (bestoffer.difper >= 3) {
+                    playalarm();
+                }
+            } catch {}
+
+            if (jQuery('#starsort').prop('checked') == true) {
+                for (var i = 0; i <= feedar.length - 1; i++) {
+                    for (var j = 0; j <= feedar.length - 1; j++) {
+                        if (parseFloat(feedar[j].redscore) < parseFloat(feedar[i].redscore)) {
+                            var temp = feedar[i];
+                            feedar[i] = feedar[j];
+                            feedar[j] = temp;
+                        }
+                    }
+                }
+            }
+
+            for (var i = 0; i <= feedar.length - 1; i++) {
+                if ((feedar[i].name == 'USDT') || (feedar[i].name == 'USDC')) {
+                    continue;
+                }
+                var name = "<div style='width:100%;text-align:center;'>" + "<a href='https://www.coinex.com/exchange/" + feedar[i].name + "-USDT' target='_blank'>" + feedar[i].name + "</a>" + "</div>";
+                var perc = "<div style='width:100%;text-align:center;'>" + parseFloat(feedar[i].perc).toFixed(2) + "</div>";
+                var fee = '';
+                var feecolor = 'black';
+                if (feedartemp.length == feedar.length) {
+                    if (parseFloat(feedar[i].price) > parseFloat(feedartemp[i].price)) {
+                        feecolor = 'green';
+                        fee = "<div style='color: " + feecolor + ";'>" + "<img src='up.png' />" + "</div>";
+                    }
+                    if (parseFloat(feedar[i].price) < parseFloat(feedartemp[i].price)) {
+                        feecolor = 'red';
+                        fee = "<div style='color: " + feecolor + ";'>" + "<img src='down.png' />" + "</div>";
+                    }
+                }
+
+                var sensor = "<div style='width:100%;text-align:center;'>" + '<a href="#sen" onclick="setsensor(\'' + feedar[i].name + '\');">set</a>';
+                if (filtarr.length > 0) {
+                    var cango = false;
+                    for (var j = 0; j <= filtarr.length - 1; j++) {
+                        if (filtarr[j] == feedar[i].name) {
+                            cango = true;
+                            break;
+                        }
+                    }
+                    if (cango == false) {
+                        continue;
+                    }
+                }
+
+                var indx = "<div style='width:100%;text-align:center;'>" + feedar[i].indx + "</div>";
+                var star = "";
+                for (var j = 0; j <= feedar[i].grnstar - 1; j++) {
+                    star += "<img src='grn36.png' style='width:16px;' />";
+                }
+                for (var j = 0; j <= feedar[i].redstar - 1; j++) {
+                    star += "<img src='red36.png' style='width:16px;' />";
+                }
+                star = "<div style='width:100%;text-align:center;'>" + star + "</div>";
+
+                
+                star = "<div style='width:100%;text-align:center;color:red;'><b>" + feedar[i].redscore + "</b></div>";
+
+                fee = "";
+                for (var j = 0; j <= feedar[i].up - 1; j++) {
+                    fee += "<img src='up.png' />";
+                }
+                if ((feedar[i].up > 0) && (feedar[i].down > 0)) {
+                    fee += "<br>";
+                }
+                for (var j = 0; j <= feedar[i].down - 1; j++) {
+                    fee += "<img src='down.png' />";
+                }
+                fee = "<div style='width:100%;text-align:center;'>" + fee + "</div>";
+
+                dtar[dtar.length] = new fldobj(indx, star, name, perc, sensor, fee);
+                for (var j = 0; j <= alarms.length - 1; j++) {
+                    if (alarms[j].uid == feedar[i].name) {
+                        if (alarms[j].comp == 'g') {
+                            if (parseFloat(feedar[i].perc) >= parseFloat(alarms[j].fee)) {
+                                playalarm();
+                            }
+                        }
+                        if (alarms[j].comp == 'l') {
+                            if (parseFloat(feedar[i].perc) <= parseFloat(alarms[j].fee)) {
+                                playalarm();
+                            }
+                        }
+                    }
+                }
+            }
+            
+            $("#jsGrid").jsGrid({
+                width: "100%",
+                height: "90%",
+
+                inserting: false,
+                editing: false,
+                sorting: true,
+                paging: false,
+
+                data: dtar,
+
+                fields: [
+                    { name: "indx", type: "text", title: "#", width: 10 },
+                    { name: "star", type: "text", title: "stars", width: 30 },
+                    { name: "name", type: "text", title: "Name", width: 30 },
+                    
+                    { name: "perc", type: "number", title: "%", width: 30 },
+                    { name: "fee", type: "text", title: "UP/DOWN" },
+                    { name: "sensor", type: "text", title: "Sensor", width: 50 }
+                ]
+            });
+            intsort = setInterval(sortgrid, 1000);
+        }
+
+        var intsort;
+
+        function sortgrid() {
+            clearInterval(intsort);
+        }
+
+    </script>
+    <script>
+        var feedar = new Array();
+        var feedartemp = new Array();
+        var basefeed = new Array();
+        $(function () {
+            mysock = io.connect('http://{server-ip}:8086');
+            mysock.on("connect_error", (error) => {
+                
+            });
+            mysock.on('connect_failed', function () {
+               
+            });
+            mysock.on('connect', function () {
+                console.log('Connected');
+                mysock.emit('getfeed', '');
+            });
+            mysock.on('disconnect', function () {
+                console.log('Disconnected');
+            });
+
+            mysock.on("getfeed", (data) => {
+                feedartemp = feedar;
+
+                var dtl2 = new Array();
+                
+                for (var k = 0; k <= data.length - 1; k++) {
+                    if ((data[k].name == 'USDT') || (data[k].name == 'USDC')) {
+                        continue;
+                    }
+                    dtl2[dtl2.length] = data[k];
+                    dtl2[dtl2.length - 1].redstar = 0;
+                    dtl2[dtl2.length - 1].redscore = 0;
+                    dtl2[dtl2.length - 1].grnstar = 0;
+                    dtl2[dtl2.length - 1].up = 0;
+                    dtl2[dtl2.length - 1].down = 0;
+                    dtl2[dtl2.length - 1].indx = dtl2.length;
+                }
+
+                feedar = dtl2;
+                if (basefeed.length == 0) {
+                    basefeed = feedar;
+                }
+                setgrid();
+                console.log('**** set getfeed ***');
+            });
+        });
+
+    </script>
+    <style>
+        .jsgrid-table tbody tr:nth-child(odd) {
+            background-color: aliceblue !important;
+        }
+        .jsgrid-row > .jsgrid-cell {
+            background: unset !important;
+        }
+        a:visited,a{
+            color:blue!important;
+        }
+        a:hover{
+            color:darkorange!important;
+        }
+        #bestoff{
+            background-color:darkred;
+            padding:5px 5px 5px 5px;
+            color:white!important;
+            font-weight:bold!important;
+            margin-bottom:15px!important;
+        }
+            #bestoff a, #bestoff a:visited, #bestoff a:hover {
+                color: #ffd800 !important;
+            }
+    </style>
+</body>
+</html>

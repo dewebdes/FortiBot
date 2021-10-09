@@ -1,0 +1,6 @@
+var cl=document.querySelectorAll('.profile__subtitle');
+var filters = '';
+for(var i=0;i<=cl.length-1;i++){
+filters=filters+cl[i].innerText+',';
+}
+console.log(filters);
