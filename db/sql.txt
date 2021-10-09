@@ -1,0 +1,13 @@
+﻿create database coinex;
+
+use coinex;
+
+CREATE TABLE coins_ex(
+id mediumint(9) NOT NULL AUTO_INCREMENT,
+name text COLLATE utf8mb4_unicode_ci,
+price text COLLATE utf8mb4_unicode_ci,
+minp text COLLATE utf8mb4_unicode_ci,
+maxp text COLLATE utf8mb4_unicode_ci,
+perc text COLLATE utf8mb4_unicode_ci,
+PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
